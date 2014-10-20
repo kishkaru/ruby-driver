@@ -27,15 +27,18 @@ class UnpreparedSelectRubyDriver < Benchmark
     end
 
     def target
-        puts "#{Time.now - start} Starting producing #{@iterations} selects..."
-        statement = Cassandra::Statements::Simple.new("SELECT * FROM songs")
+        puts "#{Time.now - start} Start producing #{@iterations} selects..."
+        statement = "SELECT * FROM songs"
         futures = @iterations.times.map do
             @session.execute_async(statement)
         end
 
-        puts "#{Time.now - start} Starting consuming selects..."
+        puts futures
+
+        puts "#{Time.now - start} Start consuming selects..."
         futures.each do |future|
             begin
+                # puts future.get.inspect
                 future.get.size
                 increment_success
             rescue => e

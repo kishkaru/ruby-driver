@@ -28,7 +28,7 @@ class UnpreparedSelectRubyDriver < Benchmark
 
     def target
         puts "#{Time.now - start} Executing #{@iterations} selects..."
-        statement = Cassandra::Statements::Simple.new("SELECT COUNT(*) FROM songs")
+        statement = "SELECT COUNT(*) FROM songs"
         @iterations.times.map do
             begin
                 @session.execute(statement)

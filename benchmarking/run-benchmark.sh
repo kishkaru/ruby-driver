@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Script defaults : 10 measurements of 10k unprepared selects
-iterations=10
+iterations=1
 queries=$((1000 * 10))
 help=false
 

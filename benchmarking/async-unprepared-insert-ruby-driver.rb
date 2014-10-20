@@ -33,16 +33,16 @@ class UnpreparedInsertRubyDriver < Benchmark
         puts "#{Time.now - start} Connecting to cluster..."
         @cluster = Cassandra.cluster(hosts: ['127.0.0.1'])
         @session = @cluster.connect("simplex")
-        @session.execute(Cassandra::Statements::Simple.new("TRUNCATE songs"))
+        @session.execute("TRUNCATE songs")
     end
 
     def target
-        puts "#{Time.now - start} Starting producing #{@iterations} inserts..."
+        puts "#{Time.now - start} Start producing #{@iterations} inserts..."
         futures = @iterations.times.map do
-            @session.execute_async("INSERT INTO songs (id, title, album, artist, tags) VALUES (?, 'Dummy song-id', 'Track 1', 'Unknown Artist', {'soundtrack', '1985'});", Cassandra::Uuid.new(@uuids.pop))
+            @session.execute_async("INSERT INTO songs (id, title, album, artist, tags) VALUES (#{Cassandra::Uuid.new(@uuids.pop)}, 'Dummy song-id', 'Track 1', 'Unknown Artist', {'soundtrack', '1985'});")
         end
 
-        puts "#{Time.now - start} Starting consuming inserts..."
+        puts "#{Time.now - start} Start consuming inserts..."
         futures.each do |future|
             begin
                 future.get

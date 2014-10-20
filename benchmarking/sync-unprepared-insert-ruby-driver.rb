@@ -33,14 +33,14 @@ class UnpreparedInsertRubyDriver < Benchmark
         puts "#{Time.now - start} Connecting to cluster..."
         @cluster = Cassandra.cluster(hosts: ['127.0.0.1'])
         @session = @cluster.connect("simplex")
-        @session.execute(Cassandra::Statements::Simple.new("TRUNCATE songs"))
+        @session.execute("TRUNCATE songs") rescue nil
     end
 
     def target
         puts "#{Time.now - start} Executing #{@iterations} inserts..."
         futures = @iterations.times.map do
             begin
-                @session.execute("INSERT INTO songs (id, title, album, artist, tags) VALUES (?, 'Dummy song-id', 'Track 1', 'Unknown Artist', {'soundtrack', '1985'});", Cassandra::Uuid.new(@uuids.pop))
+                @session.execute("INSERT INTO songs (id, title, album, artist, tags) VALUES (#{Cassandra::Uuid.new(@uuids.pop)}, 'Dummy song-id', 'Track 1', 'Unknown Artist', {'soundtrack', '1985'});")
                 increment_success
             rescue => e
                 puts "#{e.class.name}: #{e.message}"
