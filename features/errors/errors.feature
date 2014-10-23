@@ -11,27 +11,16 @@ Feature: Cassandra Ruby Driver Errors
       require 'cassandra'
 
       cluster = Cassandra.cluster
-      session = cluster.connect()
 
-      query = "CREATE TABLE users (user_id INT PRIMARY KEY)"
       begin
-        session.execute(query)
+        session = cluster.connect("badkeyspace")
       rescue => e
-        puts("#{e.class.name}: #{e.message}")
+        puts "#{e.class.name}: #{e.message}"
       end
-
-      query = "USE badkeyspace"
-      begin
-        session.execute(query)
-      rescue => e
-        puts("#{e.class.name}: #{e.message}")
-      end
-
       """
     When it is executed
     Then its output should contain:
       """
-      Cassandra::Errors::InvalidError: No keyspace has been specified. USE a keyspace, or explicity specify keyspace.tablename
       Cassandra::Errors::InvalidError: Keyspace 'badkeyspace' does not exist
       """
 
@@ -41,14 +30,12 @@ Feature: Cassandra Ruby Driver Errors
       require 'cassandra'
 
       cluster = Cassandra.cluster
-      session = cluster.connect()
+      session = cluster.connect("system")
 
-      session.execute("USE system")
-      query = "CREATE TABLE users (user_id INT PRIMARY KEY)"
       begin
-        session.execute(query)
+        session.execute("CREATE TABLE users (user_id INT PRIMARY KEY)")
       rescue => e
-        puts("#{e.class.name}: #{e.message}")
+        puts "#{e.class.name}: #{e.message}"
       end
       """
     When it is executed
@@ -65,11 +52,10 @@ Feature: Cassandra Ruby Driver Errors
       cluster = Cassandra.cluster
       session = cluster.connect()
 
-      query = "DROP KEYSPACE badkeyspace"
       begin
-        session.execute(query)
+        session.execute("DROP KEYSPACE badkeyspace")
       rescue => e
-        puts("#{e.class.name}: #{e.message}")
+        puts "#{e.class.name}: #{e.message}"
       end
       """
     When it is executed
@@ -90,11 +76,10 @@ Feature: Cassandra Ruby Driver Errors
       cluster = Cassandra.cluster
       session = cluster.connect()
 
-      query = "CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3}"
       begin
-        session.execute(query)
+        session.execute("CREATE KEYSPACE simplex WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 3}")
       rescue => e
-        puts("#{e.class.name}: #{e.message}")
+        puts "#{e.class.name}: #{e.message}"
       end
       """
     When it is executed
@@ -116,12 +101,11 @@ Feature: Cassandra Ruby Driver Errors
 
       cluster = Cassandra.cluster
       session = cluster.connect("simplex")
-      
-      query = "INSERT INTO users (user_id, first, last, age)"
+
       begin
-        session.execute(query)
+        session.execute("INSERT INTO users (user_id, first, last, age)")
       rescue => e
-        puts("#{e.class.name}: #{e.message}")
+        puts "#{e.class.name}: #{e.message}"
       end
       """
     When it is executed
@@ -139,26 +123,16 @@ Feature: Cassandra Ruby Driver Errors
 
       begin
         cluster = Cassandra.cluster(
-                  username: '',
-                  password: ''
+                    username: 'invalidname',
+                    password: 'badpassword'
                   )
       rescue => e
-        puts("#{e.class.name}: #{e.message}")
-      end
-
-      begin
-        cluster = Cassandra.cluster(
-                  username: 'invalidname',
-                  password: 'badpassword'
-                  )
-      rescue => e
-        puts("#{e.class.name}: #{e.message}")
+        puts "#{e.class.name}: #{e.message}"
       end
       """
     When it is executed
     Then its output should contain:
       """
-      ArgumentError: :username cannot be empty
       Cassandra::Errors::AuthenticationError: Username and/or password are incorrect
       """
 
@@ -172,7 +146,7 @@ Feature: Cassandra Ruby Driver Errors
         cluster = Cassandra.cluster
         session = cluster.connect()
       rescue => e
-        puts("#{e.class.name}: #{e.message}")
+        puts "#{e.class.name}: #{e.message}"
       end
       """
     When it is executed
@@ -192,7 +166,7 @@ Feature: Cassandra Ruby Driver Errors
         cluster = Cassandra.cluster(connect_timeout: 1)
         session = cluster.connect()
       rescue => e
-        puts("#{e.class.name}: #{e.message}")
+        puts "#{e.class.name}: #{e.message}"
       end
       """
     When it is executed
@@ -219,7 +193,7 @@ Feature: Cassandra Ruby Driver Errors
       begin
         session.execute(query, :consistency => :all)
       rescue => e
-        puts("#{e.class.name}: #{e.message}")
+        puts "#{e.class.name}: #{e.message}"
       end
       """
     When node 3 stops
@@ -259,7 +233,7 @@ Feature: Cassandra Ruby Driver Errors
           execution_info = results.execution_info
           $stdout.puts("Query #{query.inspect} fulfilled by #{execution_info.hosts}")
         rescue => e
-          puts("#{e.class.name}: #{e.message}")
+          $stdout.puts("#{e.class.name}: #{e.message}")
         end
         $stdout.flush
       end
@@ -306,7 +280,7 @@ Feature: Cassandra Ruby Driver Errors
           execution_info = results.execution_info
           $stdout.puts("Query #{query.inspect} fulfilled by #{execution_info.hosts}")
         rescue => e
-          puts("#{e.class.name}: #{e.message}")
+          $stdout.puts("#{e.class.name}: #{e.message}")
         end
         $stdout.flush
       end
@@ -316,7 +290,7 @@ Feature: Cassandra Ruby Driver Errors
     When it is running interactively
     And I wait for its output to contain "START"
     And node 3 is unreachable
-    And I type "SELECT * FROM simplex.users"
+    And I type "SELECT * FROM simplex.users WHERE user_id IN (1,2,3,4,5,6,7,8,9,0,11,12,13,14,15,16,17,18,19,20)"
     And I close the stdin stream
     Then its output should contain:
       """
@@ -353,7 +327,7 @@ Feature: Cassandra Ruby Driver Errors
           execution_info = results.execution_info
           $stdout.puts("Query #{query.inspect} fulfilled by #{execution_info.hosts}")
         rescue => e
-          puts("#{e.class.name}: #{e.message}")
+          $stdout.puts("#{e.class.name}: #{e.message}")
         end
         $stdout.flush
       end
