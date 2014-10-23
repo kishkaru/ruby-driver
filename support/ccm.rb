@@ -19,6 +19,7 @@
 require 'fileutils'
 require 'logger'
 require 'cliver'
+require 'os'
 
 # Cassandra Cluster Manager integration for
 # driving a cassandra cluster from tests.
@@ -233,7 +234,7 @@ module CCM extend self
       end
     end
 
-    attr_reader :name
+    attr_reader :name, :blocked_nodes
 
     def initialize(name, ccm, nodes_count = nil, datacenters = nil, keyspaces = nil)
       @name        = name
@@ -244,6 +245,8 @@ module CCM extend self
       @nodes = (1..nodes_count).map do |i|
         Node.new("node#{i}", 'DOWN', self)
       end if nodes_count
+
+      @blocked_nodes = []
     end
 
     def running?
@@ -275,6 +278,9 @@ module CCM extend self
       attempts = 1
 
       begin
+        @ccm.exec('updateconf', 'read_request_timeout_in_ms: 2000')
+        @ccm.exec('updateconf', 'write_request_timeout_in_ms: 2000')
+        @ccm.exec('updateconf', 'phi_convict_threshold: 12')
         @ccm.exec('start', '--wait-other-notice', '--wait-for-binary-proto')
       rescue
         @ccm.exec('stop') rescue nil
@@ -401,6 +407,34 @@ module CCM extend self
       nodes << Node.new(name, 'DOWN', self)
 
       nil
+    end
+
+    def block_node(name)      
+      i = name.sub('node', '')
+      
+      if OS.linux?
+        system("sudo iptables -A INPUT -s '127.0.0.#{i}' -j DROP")
+      elsif OS::Underlying.bsd?
+        system("sudo pfctl -t localsub -T add 127.0.0.#{i}")
+      elsif OS.windows?
+        nil
+      end
+
+      blocked_nodes << i
+    end
+
+    def unblock_nodes
+      if OS.linux?
+        blocked_nodes.each do |i|
+          system("sudo iptables -D INPUT -s '127.0.0.#{i}' -j DROP")
+        end
+      elsif OS::Underlying.bsd?
+        blocked_nodes.each do |i|
+          system("sudo pfctl -k 127.0.0.#{i}")
+        end
+      elsif OS.windows?
+        nil
+      end
     end
 
     def datacenters_count
