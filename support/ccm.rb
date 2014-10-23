@@ -180,6 +180,69 @@ module CCM extend self
     end
   end
 
+  if OS.linux?
+    class Firewall
+      def block(ip)
+        puts "Blocking #{ip}..."
+        success = system('sudo', 'iptables', '-A', 'INPUT', '-d', ip, '-m', 'multiport', '--dport', '9042,7000,7001', '-j', 'DROP')
+        raise "failed tp block #{ip}" unless success
+
+        nil
+      end
+
+      def unblock(ip)
+        puts "Unblocking #{ip}..."
+        success = system('sudo', 'iptables', '-D', 'INPUT', '-d', ip, '-m', 'multiport', '--dport', '9042,7000,7001', '-j', 'DROP')
+        raise "failed to unblock #{ip}" unless success
+
+        nil
+      end
+    end
+  elsif OS.mac?
+    class Firewall
+      def initialize
+        @ready = false
+      end
+
+      def block(ip)
+        prepare unless @ready
+
+        puts "Blocking #{ip}..."
+        success = system('sudo', 'pfctl', '-t', '_ruby_driver_test_blocklist_', '-T', 'add', "#{ip}/32", err: '/dev/null')
+        raise "failed tp block #{ip}" unless success
+
+        nil
+      end
+
+      def unblock(ip)
+        prepare unless @ready
+
+        puts "Unblocking #{ip}..."
+        success = system('sudo', 'pfctl', '-t', '_ruby_driver_test_blocklist_', '-T', 'delete', "#{ip}/32", err: '/dev/null')
+        raise "failed to unblock #{ip}" unless success
+
+        nil
+      end
+
+      private
+
+      def prepare
+        puts "Checking if '_ruby_driver_test_blocklist_' table is present in pf.conf"
+        if `sudo pfctl -s rules 2>/dev/null | grep 'block drop proto tcp from any to <_ruby_driver_test_blocklist_> port = 9042'`.chomp.empty?
+          puts "Ruby driver tests need to modify pf.conf to be able to simulate network partitions"
+          success = system('sudo bash -c "echo \'block drop proto tcp from any to <_ruby_driver_test_blocklist_> port {9042, 7000, 7001}\' >> /etc/pf.conf"')
+          abort "Unable to add rule to block _ruby_driver_test_blocklist_ table to /etc/pf.conf" unless success
+          puts "Starting PF firewall"
+          system('sudo pfctl -ef /etc/pf.conf 2>/dev/null')
+        end
+
+        @ready = true
+      end
+    end
+  elsif OS.windows?
+    abort "Cannot run test on Windows, due to lack of firewall support for simulating network partitions"
+  end
+
   class Cluster
     class Node
       attr_reader :name, :status
@@ -234,19 +297,19 @@ module CCM extend self
       end
     end
 
-    attr_reader :name, :blocked_nodes
+    attr_reader :name
 
-    def initialize(name, ccm, nodes_count = nil, datacenters = nil, keyspaces = nil)
+    def initialize(name, ccm, firewall, nodes_count = nil, datacenters = nil, keyspaces = nil)
       @name        = name
       @ccm         = ccm
+      @firewall    = firewall
       @datacenters = datacenters
       @keyspaces   = keyspaces
 
       @nodes = (1..nodes_count).map do |i|
         Node.new("node#{i}", 'DOWN', self)
       end if nodes_count
-
-      @blocked_nodes = []
+      @blocked = ::Set.new
     end
 
     def running?
@@ -278,9 +341,6 @@ module CCM extend self
       attempts = 1
 
       begin
-        @ccm.exec('updateconf', 'read_request_timeout_in_ms: 2000')
-        @ccm.exec('updateconf', 'write_request_timeout_in_ms: 2000')
-        @ccm.exec('updateconf', 'phi_convict_threshold: 12')
         @ccm.exec('start', '--wait-other-notice', '--wait-for-binary-proto')
       rescue
         @ccm.exec('stop') rescue nil
@@ -409,32 +469,30 @@ module CCM extend self
       nil
     end
 
-    def block_node(name)      
-      i = name.sub('node', '')
-      
-      if OS.linux?
-        system("sudo iptables -A INPUT -s '127.0.0.#{i}' -j DROP")
-      elsif OS::Underlying.bsd?
-        system("sudo pfctl -t localsub -T add 127.0.0.#{i}")
-      elsif OS.windows?
-        nil
-      end
+    def block_node(name)
+      return if @blocked.include?(name)
 
-      blocked_nodes << i
+      i  = name.sub('node', '')
+      ip = "127.0.0.#{i}"
+
+      @firewall.block(ip)
+      @blocked.add(name)
+
+      nil
     end
 
     def unblock_nodes
-      if OS.linux?
-        blocked_nodes.each do |i|
-          system("sudo iptables -D INPUT -s '127.0.0.#{i}' -j DROP")
-        end
-      elsif OS::Underlying.bsd?
-        blocked_nodes.each do |i|
-          system("sudo pfctl -k 127.0.0.#{i}")
-        end
-      elsif OS.windows?
-        nil
+      stop
+      @blocked.each do |name|
+        i  = name.sub('node', '')
+        ip = "127.0.0.#{i}"
+
+        @firewall.unblock(ip)
       end
+      @blocked.clear
+      start
+
+      nil
     end
 
     def datacenters_count
@@ -614,6 +672,10 @@ module CCM extend self
     end
   end
 
+  def firewall
+    @firewall ||= Firewall.new
+  end
+
   def ccm_home
     @ccm_home ||= begin
       ccm_home = File.expand_path(File.dirname(__FILE__) + '/../tmp')
@@ -659,7 +721,11 @@ module CCM extend self
 
     ccm.exec('create', '-v', 'binary:' + version, '-b', name)
 
-    config = []
+    config = [
+      'read_request_timeout_in_ms: 2000',
+      'write_request_timeout_in_ms: 2000',
+      'phi_convict_threshold: 12'
+    ]
 
     if cassandra_version.start_with?('1.2.')
       config << 'reduce_cache_sizes_at: 0'
@@ -692,7 +758,7 @@ module CCM extend self
     ccm.exec('updateconf', *config)
     ccm.exec('populate', '-n', nodes, '-i', '127.0.0.')
 
-    clusters << @current_cluster = Cluster.new(name, ccm, nodes_per_datacenter * datacenters, datacenters, [])
+    clusters << @current_cluster = Cluster.new(name, ccm, firewall, nodes_per_datacenter * datacenters, datacenters, [])
 
     nil
   end
@@ -708,7 +774,7 @@ module CCM extend self
         name.strip!
         current = name.start_with?('*')
         name.sub!('*', '')
-        cluster = Cluster.new(name, ccm)
+        cluster = Cluster.new(name, ccm, firewall)
         @current_cluster = cluster if current
         cluster
       end
