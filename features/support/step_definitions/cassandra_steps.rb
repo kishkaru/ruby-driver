@@ -99,6 +99,10 @@ When(/^node (\d+) restarts$/) do |i|
   step "node #{i} starts"
 end
 
+When(/^node (\d+) is unreachable$/) do |i|
+  @cluster.block_node("node#{i}")
+end
+
 When(/^I wait for (\d+) seconds$/) do |interval|
   sleep(interval.to_i)
 end
