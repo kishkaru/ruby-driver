@@ -184,16 +184,20 @@ module CCM extend self
     class Firewall
       def block(ip)
         puts "Blocking #{ip}..."
-        success = system('sudo', 'iptables', '-A', 'INPUT', '-d', ip, '-m', 'multiport', '-p', 'tcp', '--dport', '9042,7000,7001', '-j', 'DROP')
-        raise "failed to block #{ip}" unless success
+        success = system('sudo', 'iptables', '-A', 'INPUT', '-d', ip, '-p', 'tcp', '-m', 'multiport', '--dport', '9042,7000,7001', '-j', 'DROP')
+        raise "failed tp block #{ip}" unless success
+        success = system('sudo', 'iptables', '-A', 'OUTPUT', '-s', ip, '-p', 'tcp', '-m', 'multiport', '--dport', '9042,7000,7001', '-j', 'DROP')
+        raise "failed tp block #{ip}" unless success
 
         nil
       end
 
       def unblock(ip)
         puts "Unblocking #{ip}..."
-        success = system('sudo', 'iptables', '-D', 'INPUT', '-d', ip, '-m', 'multiport', '-p', 'tcp', '--dport', '9042,7000,7001', '-j', 'DROP')
+        success = system('sudo', 'iptables', '-D', 'INPUT', '-d', ip, '-p', 'tcp', '-m', 'multiport', '--dport', '9042,7000,7001', '-j', 'DROP')
         raise "failed to unblock #{ip}" unless success
+        success = system('sudo', 'iptables', '-D', 'OUTPUT', '-s', ip, '-p', 'tcp', '-m', 'multiport', '--dport', '9042,7000,7001', '-j', 'DROP')
+        raise "failed tp unblock #{ip}" unless success
 
         nil
       end
@@ -231,6 +235,8 @@ module CCM extend self
         if `sudo pfctl -s rules 2>/dev/null | grep 'block drop proto tcp from any to <_ruby_driver_test_blocklist_> port = 9042'`.chomp.empty?
           puts "Ruby driver tests need to modify pf.conf to be able to simulate network partitions"
           success = system('sudo bash -c "echo \'block drop proto tcp from any to <_ruby_driver_test_blocklist_> port {9042, 7000, 7001}\' >> /etc/pf.conf"')
+          abort "Unable to add rule to block _ruby_driver_test_blocklist_ table to /etc/pf.conf" unless success
+          success = system('sudo bash -c "echo \'block drop proto tcp from <_ruby_driver_test_blocklist_> to any port {9042, 7000, 7001}\' >> /etc/pf.conf"')
           abort "Unable to add rule to block _ruby_driver_test_blocklist_ table to /etc/pf.conf" unless success
           puts "Starting PF firewall"
           system('sudo pfctl -ef /etc/pf.conf 2>/dev/null')
@@ -481,6 +487,12 @@ module CCM extend self
       nil
     end
 
+    def block_nodes
+      nodes.each do |node|
+        block_node(node.name)
+      end
+    end
+
     def unblock_nodes
       stop
       @blocked.each do |name|
@@ -722,9 +734,13 @@ module CCM extend self
     ccm.exec('create', '-v', 'binary:' + version, '-b', name)
 
     config = [
-      'read_request_timeout_in_ms: 2000',
-      'write_request_timeout_in_ms: 2000',
-      'phi_convict_threshold: 4'
+      '--rt', '200',
+      'read_request_timeout_in_ms: 200',
+      'write_request_timeout_in_ms: 200',
+      'request_timeout_in_ms: 200',
+      'phi_convict_threshold: 16',
+      'hinted_handoff_enabled: false',
+      'dynamic_snitch_update_interval_in_ms: 1000'
     ]
 
     if cassandra_version.start_with?('1.2.')
@@ -754,7 +770,6 @@ module CCM extend self
     config << 'memtable_flush_writers: 1'
     config << 'max_hints_delivery_threads: 1'
 
-    ccm.exec('updateconf', '--rt', '10000')
     ccm.exec('updateconf', *config)
     ccm.exec('populate', '-n', nodes, '-i', '127.0.0.')
 
