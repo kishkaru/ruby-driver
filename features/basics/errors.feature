@@ -218,8 +218,6 @@ Feature: Cassandra Ruby Driver Errors
       """ruby
       require 'cassandra' 
 
-      # This one not yet working
-
       cluster = Cassandra.cluster(retry_policy: Cassandra::Retry::Policies::Fallthrough.new)
       session = cluster.connect("simplex")
       
@@ -247,7 +245,7 @@ Feature: Cassandra Ruby Driver Errors
     And I close the stdin stream
     Then its output should contain:
       """
-      Cassandra::Errors::TimeoutError
+      Cassandra::Errors::TimeoutError: Timed out
       """
 
   @netblock
@@ -264,8 +262,6 @@ Feature: Cassandra Ruby Driver Errors
     And the following example:
       """ruby
       require 'cassandra'
-
-      # This one not yet working
 
       cluster = Cassandra.cluster(retry_policy: Cassandra::Retry::Policies::Fallthrough.new)
       session = cluster.connect("simplex")
@@ -311,8 +307,6 @@ Feature: Cassandra Ruby Driver Errors
     And the following example:
       """ruby
       require 'cassandra'
-
-      # This one not yet working
 
       cluster = Cassandra.cluster(retry_policy: Cassandra::Retry::Policies::Fallthrough.new)
       session = cluster.connect("simplex")

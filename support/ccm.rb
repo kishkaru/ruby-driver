@@ -184,15 +184,15 @@ module CCM extend self
     class Firewall
       def block(ip)
         puts "Blocking #{ip}..."
-        success = system('sudo', 'iptables', '-A', 'INPUT', '-d', ip, '-m', 'multiport', '--dport', '9042,7000,7001', '-j', 'DROP')
-        raise "failed tp block #{ip}" unless success
+        success = system('sudo', 'iptables', '-A', 'INPUT', '-d', ip, '-m', 'multiport', '-p', 'tcp', '--dport', '9042,7000,7001', '-j', 'DROP')
+        raise "failed to block #{ip}" unless success
 
         nil
       end
 
       def unblock(ip)
         puts "Unblocking #{ip}..."
-        success = system('sudo', 'iptables', '-D', 'INPUT', '-d', ip, '-m', 'multiport', '--dport', '9042,7000,7001', '-j', 'DROP')
+        success = system('sudo', 'iptables', '-D', 'INPUT', '-d', ip, '-m', 'multiport', '-p', 'tcp', '--dport', '9042,7000,7001', '-j', 'DROP')
         raise "failed to unblock #{ip}" unless success
 
         nil
@@ -724,7 +724,7 @@ module CCM extend self
     config = [
       'read_request_timeout_in_ms: 2000',
       'write_request_timeout_in_ms: 2000',
-      'phi_convict_threshold: 12'
+      'phi_convict_threshold: 4'
     ]
 
     if cassandra_version.start_with?('1.2.')
