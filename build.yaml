@@ -8,6 +8,13 @@ schedule:
         - cassandra: 2.0
         - cassandra: 2.2
         - cassandra: 3.0
+  - name: nightly
+    schedule: @nightly
+    matrix:
+      exclude:
+        - jruby1.7
+        - cassandra: 2.0
+        - cassandra: 3.0
 
 ruby:
   - 2.2
