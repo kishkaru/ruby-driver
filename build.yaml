@@ -9,7 +9,7 @@ schedule:
         - cassandra: 2.2
         - cassandra: 3.0
   - name: nightly
-    schedule: each_night
+    schedule: nightly
     matrix:
       exclude:
         - jruby1.7
