@@ -1,4 +1,6 @@
 schedule:
+  - whitelist: 
+    - build_yaml
   - name: commit
     schedule: per_commit
     matrix:
