@@ -1,6 +1,7 @@
 schedule:
   - whitelist: 
     - build_yaml
+    - /feature.*/
   - name: commit
     schedule: per_commit
     matrix:
