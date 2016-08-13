@@ -1,5 +1,3 @@
-# a comment here
-
 schedule:
   - whitelist: 
     - build_yaml
@@ -8,7 +6,6 @@ schedule:
     schedule: per_commit
     matrix:
       exclude:
-        - ruby: 2.2
         - ruby: jruby1.7
         - cassandra: 2.0
         - cassandra: 2.2
