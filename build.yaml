@@ -1,7 +1,7 @@
 schedule:
   - whitelist: 
     - build_yaml
-    - /feature.*/
+    - /feature*/
   - name: commit
     schedule: per_commit
     matrix:
@@ -18,6 +18,8 @@ schedule:
         - ruby: jruby1.7
         - cassandra: 2.0
         - cassandra: 3.0
+  - name: weekly
+    schedule: weekly
 
 ruby:
   - 2.2
