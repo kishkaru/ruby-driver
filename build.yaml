@@ -11,6 +11,9 @@ schedule:
         - cassandra: 2.0
         - cassandra: 2.2
         - cassandra: 3.0
+    env_vars: |
+      SOME_VAR="foobar"
+      OTHER_VAR='barbaz'
   - name: nightly
     schedule: nightly
     matrix:
