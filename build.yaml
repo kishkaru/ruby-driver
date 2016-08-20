@@ -39,8 +39,8 @@ os:
 build:
   - type: envinject
     properties: |
-      FOO='bar'
-      YES='no'
+      SOME_VAR='foo'
+      OTHER_VAR='bar'
   - type: bundler
     without: development docs
   - script: |
