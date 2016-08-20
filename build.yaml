@@ -37,6 +37,10 @@ cassandra:
 os:
   - ubuntu/trusty64
 build:
+  - type: envinject
+    properties: |
+      FOO='bar'
+      YES='no'
   - type: bundler
     without: development docs
   - script: |
