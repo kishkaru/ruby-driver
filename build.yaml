@@ -1,4 +1,3 @@
-
 schedule:
   - whitelist: 
     - build_yaml
@@ -22,8 +21,6 @@ schedule:
         - ruby: jruby1.7
         - cassandra: 2.0
         - cassandra: 3.0
-  - name: weekly
-    schedule: weekly
 
 ruby:
   - 2.2
