@@ -1,4 +1,4 @@
-chedule:
+schedule:
   - whitelist: 
     - build_yaml
     - /feature*/
