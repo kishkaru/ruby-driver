@@ -2,7 +2,7 @@ schedule:
   - name: commit
     schedule: per_commit
     branches:
-      - foo
+      foo:
     matrix:
       exclude:
         - ruby: 2.2
