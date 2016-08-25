@@ -2,7 +2,7 @@ schedule:
   - name: commit
     schedule: per_commit
     branches:
-      exclude: build_yaml
+      exclude: [build_yaml]
     matrix:
       exclude:
         - ruby: 2.2
