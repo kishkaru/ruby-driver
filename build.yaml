@@ -3,6 +3,7 @@ schedule:
     schedule: per_commit
     branches:
       include: [build_yaml, feature.*]
+      exclude: [build_yaml]
     matrix:
       exclude:
         - ruby: 2.2
