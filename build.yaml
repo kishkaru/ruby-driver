@@ -1,13 +1,13 @@
 schedule: per_commit
 branches:
-  only: [build_yaml, /feature*/]
-  matrix:
-    exclude:
-        - ruby: 2.2
-        - ruby: jruby1.7
-        - cassandra: 2.0
-        - cassandra: 2.2
-        - cassandra: 3.0
+  include: [build_yaml, /feature*/]
+matrix:
+  exclude:
+    - ruby: 2.2
+    - ruby: jruby1.7
+    - cassandra: 2.0
+    - cassandra: 2.2
+    - cassandra: 3.0
 env_vars: |
   SOME_VAR="foo"
   OTHER_VAR='bar'
