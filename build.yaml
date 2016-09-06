@@ -1,25 +1,6 @@
-schedules:
-  commit:
-    schedule: per_commit
-    matrix:
-      exclude:
-        - ruby: 2.2
-        - ruby: jruby1.7
-        - cassandra: 2.0
-        - cassandra: 2.2
-        - cassandra: 3.0
-    env_vars: |
-      SOME_VAR="foobar"
-      OTHER_VAR='barbaz'
-  nightly:
-    schedule: nightly
-    matrix:
-      exclude:
-        - ruby: jruby1.7
-        - cassandra: 2.0
-        - cassandra: 3.0
-  weekly:
-    schedule: weekly
+schedule: per_commit
+branches:
+  whitelist: ['bar']
 
 ruby:
   - 2.2
