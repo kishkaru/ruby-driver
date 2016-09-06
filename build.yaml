@@ -1,6 +1,6 @@
-schedule: per_commit
 branches:
-  exclude: ['/build*/']
+  include: ['/build*/']
+
 
 ruby:
   - 2.2
