@@ -1,8 +1,6 @@
-schedule:
-  - name: commit
+schedules:
+  commit:
     schedule: per_commit
-    branches:
-      exclude: [/build*/]
     matrix:
       exclude:
         - ruby: 2.2
@@ -13,14 +11,14 @@ schedule:
     env_vars: |
       SOME_VAR="foobar"
       OTHER_VAR='barbaz'
-  - name: nightly
+  nightly:
     schedule: nightly
     matrix:
       exclude:
         - ruby: jruby1.7
         - cassandra: 2.0
         - cassandra: 3.0
-  - name: weekly
+  weekly:
     schedule: weekly
 
 ruby:
